@@ -2,6 +2,7 @@ import discord
 import os
 import asyncio
 import re
+import time
 from discord.ext import commands
 from datetime import datetime
 
@@ -20,38 +21,31 @@ BUG_CHANNEL = os.getenv("BUG_CHANNEL", "<#1476555789811454077>")
 TICKET_CHANNEL = os.getenv("TICKET_CHANNEL", "<#1471604674422509692>")
 
 DELETE_DELAY = int(os.getenv("DELETE_DELAY", "10"))
+COOLDOWN_SECONDS = int(os.getenv("COOLDOWN_SECONDS", "20"))
 
 # Cores dos embeds
-COLOR_SCRIPT = 0x3498db      # Azul
-COLOR_EXECUTOR = 0x2ecc71    # Verde
-COLOR_BUG = 0xe74c3c         # Vermelho
-COLOR_KEY = 0x9b59b6         # Roxo
-COLOR_HELP = 0xf39c12        # Laranja
-COLOR_DEFAULT = 0x95a5a6     # Cinza
+COLOR_SCRIPT = 0x3498db
+COLOR_EXECUTOR = 0x2ecc71
+COLOR_BUG = 0xe74c3c
+COLOR_KEY = 0x9b59b6
+COLOR_HELP = 0xf39c12
+COLOR_DEFAULT = 0x95a5a6
 
 # ============ SISTEMA DE DETECÇÃO INTELIGENTE ============
-# Cada categoria tem: palavras-chave, peso mínimo, e resposta
-
 KEYWORDS = {
     "script": {
         "words": [
-            # Português
             "script", "scripts", "cheat", "cheats", "hack", "hacks",
             "mod menu", "modmenu", "mod", "mods", "exploit", "exploits",
             "farm", "auto farm", "autofarm", "auto-click", "autoclick",
             "injetor", "injector", "dll", "lua", "roblox script",
             "script de", "script para", "tem script", "algum script",
             "sct", "scrit", "scrpit", "scrip", "scrips",
-            "jogo de teclado", "keyboard game", "typing game",
-            "blox fruit", "blox fruits", "doors", "doors script",
-            "bedwars", "mm2", "murder mystery", "adopt me",
-            "jailbreak", "brookhaven", "tower of hell", "toh",
-            "piggy", "arsenal", "phantom forces", "pf script",
             "simulador", "simulator", "tycoon", "obby", "obby script",
             "speed run", "speedrun", "auto parry", "autoparry",
             "kill aura", "killaura", "fly", "noclip", "teleport",
             "esp", "wallhack", "aimbot", "triggerbot", "bhop",
-            "auto parry", "auto-dodge", "auto collect", "auto click",
+            "auto-dodge", "auto collect", "auto click",
             "macro", "macros", "bot", "bots", "automação",
             "scripting", "programa", "programinha", "aplicativo",
             "tem como", "como faço", "como usar", "tutorial script",
@@ -73,14 +67,10 @@ KEYWORDS = {
 
     "executor": {
         "words": [
-            # Português
             "executor", "executores", "exploit tool", "exploitation",
             "injetor", "injector", "injetar", "inject",
             "executor android", "executor pc", "executor ios",
             "executor mobile", "executor celular", "executor iphone",
-            "delta", "krnl", "synapse", "synapse x", "scriptware",
-            "fluxus", "codex", "arceus", "evon", "hydrogen",
-            "jjsploit", "comet", "electron", "oxygen u",
             "roblox executor", "roblox exploit", "level 7",
             "level 8", "unc", "sunc", "api", "wrapper",
             "dll injector", "process hacker", "cheat engine",
@@ -97,7 +87,7 @@ KEYWORDS = {
         "weight": 1,
         "title": "⚙️ Executores",
         "description": (
-            f"Caso esteja procurando executores:\n"
+            f"Canais de executores por plataforma:\n"
             f"📱 **Android:** {EXECUTOR_ANDROID}\n"
             f"💻 **PC:** {EXECUTOR_PC}\n"
             f"🍎 **iOS:** {EXECUTOR_IOS}"
@@ -109,7 +99,6 @@ KEYWORDS = {
 
     "bug": {
         "words": [
-            # Português
             "bug", "bugs", "bugado", "bugada", "bugou", "bugando",
             "crash", "crasha", "crashei", "crasheou", "crashing",
             "erro", "erros", "error", "errors", "falha", "falhou",
@@ -129,7 +118,7 @@ KEYWORDS = {
             "infinito loading", "stuck", "preso", "presa",
             "não responde", "nao responde", "sem resposta",
             "timeout", "time out", "demora", "demorando",
-            "lento", "lenta", "devagar", "demais",
+            "lento", "lenta", "devagar",
             "morri sozinho", "morreu sozinho", "morri do nada",
             "perdi itens", "sumiu", "desapareceu", "não salva",
             "nao salva", "progresso perdido", "resetou",
@@ -137,9 +126,9 @@ KEYWORDS = {
         "weight": 1,
         "title": "🐛 Reportar Bug",
         "description": (
-            f"Caso esteja tendo problemas:\n"
-            f"📋 Verifique as soluções em {BUG_CHANNEL}\n"
-            f"🎫 Ou abra um ticket em {TICKET_CHANNEL}"
+            f"Canais para reportar problemas:\n"
+            f"📋 Soluções: {BUG_CHANNEL}\n"
+            f"🎫 Ticket: {TICKET_CHANNEL}"
         ),
         "color": COLOR_BUG,
         "emoji": "🐛",
@@ -148,7 +137,6 @@ KEYWORDS = {
 
     "key": {
         "words": [
-            # Português
             "key", "keys", "chave", "chaves", "key system",
             "bypass", "bypas", "by pass", "bypassar", "bypasse",
             "encurtador", "encurtadores", "linkvertise", "lootlabs",
@@ -169,8 +157,8 @@ KEYWORDS = {
         "weight": 1,
         "title": "🔑 Key System & Bypass",
         "description": (
-            f"Caso esteja procurando um bot de bypass\n"
-            f"para encurtadores ou key system, verifique {TICKET_CHANNEL}"
+            f"Para bypass de encurtadores/key system,\n"
+            f"abra um ticket em {TICKET_CHANNEL}"
         ),
         "color": COLOR_KEY,
         "emoji": "🔑",
@@ -179,7 +167,6 @@ KEYWORDS = {
 
     "help": {
         "words": [
-            # Português
             "socorro", "ajuda", "help", "suporte", "support",
             "preciso de ajuda", "preciso ajuda", "quero ajuda",
             "me ajuda", "me ajudem", "alguém me ajuda", "alguem me ajuda",
@@ -223,6 +210,9 @@ NEGATIVE_CONTEXT = [
     "anti script", "anti-cheat", "reportar script", "denunciar",
 ]
 
+# ============ COOLDOWN POR USUÁRIO ============
+user_cooldowns = {}
+
 # ============ BOT ============
 intents = discord.Intents.default()
 intents.message_content = True
@@ -235,8 +225,20 @@ bot = commands.Bot(
 )
 
 
+def is_on_cooldown(user_id: int) -> bool:
+    """Verifica se o usuário está em cooldown."""
+    if user_id not in user_cooldowns:
+        return False
+    elapsed = time.time() - user_cooldowns[user_id]
+    return elapsed < COOLDOWN_SECONDS
+
+
+def set_cooldown(user_id: int):
+    """Define o timestamp do último acionamento do usuário."""
+    user_cooldowns[user_id] = time.time()
+
+
 def create_embed(category: str, user: discord.Member) -> discord.Embed:
-    """Cria um embed profissional para a categoria detectada."""
     data = KEYWORDS[category]
 
     embed = discord.Embed(
@@ -251,22 +253,6 @@ def create_embed(category: str, user: discord.Member) -> discord.Embed:
         icon_url=user.display_avatar.url
     )
 
-    embed.set_thumbnail(
-        url="https://cdn.discordapp.com/emojis/1052016448.png"  # Emoji genérico, pode trocar
-    )
-
-    embed.add_field(
-        name="📌 Categoria",
-        value=f"{data['emoji']} {category.title()}",
-        inline=True
-    )
-
-    embed.add_field(
-        name="👤 Usuário",
-        value=user.mention,
-        inline=True
-    )
-
     embed.set_footer(
         text=f"{data['footer']} | Esta mensagem será apagada em {DELETE_DELAY}s",
         icon_url=bot.user.display_avatar.url if bot.user else None
@@ -275,14 +261,9 @@ def create_embed(category: str, user: discord.Member) -> discord.Embed:
     return embed
 
 
-def analyze_message(content: str) -> tuple[str, int] | None:
-    """
-    Analisa a mensagem e retorna a categoria mais provável + peso total.
-    Usa sistema de pontuação com pesos e contexto.
-    """
+def analyze_message(content: str) -> tuple | None:
     content_lower = content.lower()
 
-    # Verifica contexto negativo primeiro
     for neg in NEGATIVE_CONTEXT:
         if neg in content_lower:
             return None
@@ -294,13 +275,9 @@ def analyze_message(content: str) -> tuple[str, int] | None:
         matched_words = []
 
         for word in data["words"]:
-            # Busca palavra exata ou parte da palavra
             pattern = r'\b' + re.escape(word.lower()) + r'\b'
-
-            # Conta ocorrências
             matches = len(re.findall(pattern, content_lower))
 
-            # Se não encontrou como palavra inteira, tenta substring
             if matches == 0:
                 if word.lower() in content_lower:
                     matches = 1
@@ -309,13 +286,11 @@ def analyze_message(content: str) -> tuple[str, int] | None:
                 score += matches * data["weight"]
                 matched_words.append(word)
 
-        # Bônus por múltiplas palavras da mesma categoria
         if len(matched_words) >= 3:
             score += 2
         if len(matched_words) >= 5:
             score += 3
 
-        # Bônus por proximidade de palavras (se estiverem próximas no texto)
         if len(matched_words) >= 2:
             score += 1
 
@@ -328,12 +303,10 @@ def analyze_message(content: str) -> tuple[str, int] | None:
     if not scores:
         return None
 
-    # Escolhe a categoria com maior pontuação
     best_category = max(scores, key=lambda x: scores[x]["score"])
     best_score = scores[best_category]["score"]
 
-    # Threshold mínimo para evitar falsos positivos
-    if best_score < 1:
+    if best_score < 2:
         return None
 
     return (best_category, best_score)
@@ -344,8 +317,8 @@ async def on_ready():
     print(f"✅ Bot online como {bot.user}")
     print(f"🌐 Conectado em {len(bot.guilds)} servidor(es)")
     print(f"📊 {len(KEYWORDS)} categorias de suporte carregadas")
+    print(f"⏱️ Cooldown por usuário: {COOLDOWN_SECONDS}s")
 
-    # Atividade do bot
     activity = discord.Activity(
         type=discord.ActivityType.watching,
         name="por mensagens | !ajuda"
@@ -355,45 +328,36 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: discord.Message):
-    # Ignora mensagens do próprio bot
     if message.author == bot.user:
         return
 
-    # Ignora DMs
     if message.guild is None:
         return
 
-    # Ignora bots
     if message.author.bot:
         return
 
-    # Analisa a mensagem
+    # === COOLDOWN POR USUÁRIO ===
+    if is_on_cooldown(message.author.id):
+        return
+
     result = analyze_message(message.content)
 
     if result:
         category, score = result
 
-        # Cria embed profissional
+        set_cooldown(message.author.id)
+
         embed = create_embed(category, message.author)
 
-        # Adiciona campo de confiança (debug opcional)
-        # embed.add_field(
-        #     name="🎯 Confiança",
-        #     value=f"{score} pontos detectados",
-        #     inline=True
-        # )
-
-        # Envia resposta
         sent = await message.channel.send(embed=embed)
 
-        # Aguarda e deleta
         await asyncio.sleep(DELETE_DELAY)
         try:
             await sent.delete()
         except discord.NotFound:
-            pass  # Já foi deletada
+            pass
 
-    # Processa comandos normais
     await bot.process_commands(message)
 
 
@@ -401,8 +365,6 @@ async def on_message(message: discord.Message):
 
 @bot.command(name="ajuda", aliases=["help", "comandos", "cmds"])
 async def cmd_ajuda(ctx: commands.Context):
-    """Mostra todas as categorias de suporte disponíveis."""
-
     embed = discord.Embed(
         title="🤖 Central de Suporte Automático",
         description="Eu detecto automaticamente o que você precisa! Aqui estão as categorias:",
@@ -412,7 +374,7 @@ async def cmd_ajuda(ctx: commands.Context):
 
     categories_info = [
         ("📜 Scripts", "script", "Palavras como: script, cheat, hack, mod menu, auto farm..."),
-        ("⚙️ Executores", "executor", "Palavras como: executor, delta, krnl, fluxus, inject..."),
+        ("⚙️ Executores", "executor", "Palavras como: executor, inject, exploit, level 7, bypass..."),
         ("🐛 Bugs & Erros", "bug", "Palavras como: bug, crash, erro, não funciona, travou..."),
         ("🔑 Key & Bypass", "key", "Palavras como: key, bypass, encurtador, linkvertise..."),
         ("🆘 Ajuda Geral", "help", "Palavras como: ajuda, socorro, help, não sei, tutorial..."),
@@ -426,7 +388,7 @@ async def cmd_ajuda(ctx: commands.Context):
         )
 
     embed.set_footer(
-        text="Basta enviar sua mensagem no chat que eu identifico automaticamente!",
+        text=f"Basta enviar sua mensagem no chat que eu identifico automaticamente! | Cooldown: {COOLDOWN_SECONDS}s",
         icon_url=bot.user.display_avatar.url
     )
 
@@ -435,7 +397,6 @@ async def cmd_ajuda(ctx: commands.Context):
 
 @bot.command(name="ping")
 async def cmd_ping(ctx: commands.Context):
-    """Verifica a latência do bot."""
     latency = round(bot.latency * 1000)
 
     embed = discord.Embed(
@@ -449,9 +410,6 @@ async def cmd_ping(ctx: commands.Context):
 
 @bot.command(name="testar", aliases=["test", "detectar"])
 async def cmd_testar(ctx: commands.Context, *, texto: str):
-    """Testa a detecção de uma mensagem (apenas para admins)."""
-
-    # Permissão básica: apenas quem tem permissão de gerenciar mensagens
     if not ctx.author.guild_permissions.manage_messages:
         return await ctx.send("❌ Você não tem permissão para usar este comando.")
 
@@ -477,8 +435,6 @@ async def cmd_testar(ctx: commands.Context, *, texto: str):
 
 @bot.command(name="stats")
 async def cmd_stats(ctx: commands.Context):
-    """Mostra estatísticas do bot."""
-
     embed = discord.Embed(
         title="📊 Estatísticas do Bot",
         color=COLOR_DEFAULT,
@@ -489,9 +445,9 @@ async def cmd_stats(ctx: commands.Context):
     embed.add_field(name="Categorias", value=str(len(KEYWORDS)), inline=True)
     embed.add_field(name="Latência", value=f"{round(bot.latency * 1000)}ms", inline=True)
 
-    # Conta palavras-chave totais
     total_keywords = sum(len(v["words"]) for v in KEYWORDS.values())
     embed.add_field(name="Palavras-chave", value=str(total_keywords), inline=True)
+    embed.add_field(name="Cooldown", value=f"{COOLDOWN_SECONDS}s", inline=True)
 
     embed.set_footer(text=f"Bot: {bot.user}")
 
