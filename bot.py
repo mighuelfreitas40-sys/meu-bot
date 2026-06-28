@@ -86,7 +86,6 @@ KEYWORDS = {
         ],
         "weight": 1,
         "title": "📜 Scripts & Cheats",
-        "description": None,
         "color": COLOR_SCRIPT,
         "emoji": "📜",
         "footer": "Dica: Mencione o nome exato do jogo para melhor ajuda!"
@@ -113,7 +112,6 @@ KEYWORDS = {
         ],
         "weight": 1,
         "title": "⚙️ Executores",
-        "description": None,
         "color": COLOR_EXECUTOR,
         "emoji": "⚙️",
         "footer": "Escolha o executor compatível com seu dispositivo!"
@@ -147,7 +145,6 @@ KEYWORDS = {
         ],
         "weight": 1,
         "title": "🐛 Reportar Bug",
-        "description": None,
         "color": COLOR_BUG,
         "emoji": "🐛",
         "footer": "Inclua prints e detalhes do erro no ticket para agilizar!"
@@ -174,7 +171,6 @@ KEYWORDS = {
         ],
         "weight": 1,
         "title": "🔑 Key System & Bypass",
-        "description": None,
         "color": COLOR_KEY,
         "emoji": "🔑",
         "footer": "Nosso suporte pode ajudar com bypass de encurtadores!"
@@ -208,7 +204,6 @@ KEYWORDS = {
         ],
         "weight": 1,
         "title": "🆘 Central de Ajuda",
-        "description": None,
         "color": COLOR_HELP,
         "emoji": "🆘",
         "footer": "Nossa equipe responde o mais rápido possível!"
@@ -250,25 +245,15 @@ def set_cooldown(user_id: int):
 
 def get_description(category: str) -> str:
     if category == "script":
-        return "Se está à procura de scripts, verifique:
-" + SCRIPT_CHANNELS + "
-
-Caso não encontre, diga o nome do jogo em " + SCRIPT_FALLBACK
+        return "Se esta a procura de scripts, verifique:\n" + SCRIPT_CHANNELS + "\n\nCaso nao encontre, diga o nome do jogo em " + SCRIPT_FALLBACK
     elif category == "executor":
-        return "Canais de executores por plataforma:
-📱 **Android:** " + EXECUTOR_ANDROID + "
-💻 **PC:** " + EXECUTOR_PC + "
-🍎 **iOS:** " + EXECUTOR_IOS
+        return "Canais de executores por plataforma:\nAndroid: " + EXECUTOR_ANDROID + "\nPC: " + EXECUTOR_PC + "\niOS: " + EXECUTOR_IOS
     elif category == "bug":
-        return "Canais para reportar problemas:
-📋 Soluções: " + BUG_CHANNEL + "
-🎫 Ticket: " + TICKET_CHANNEL
+        return "Canais para reportar problemas:\nSolucoes: " + BUG_CHANNEL + "\nTicket: " + TICKET_CHANNEL
     elif category == "key":
-        return "Para bypass de encurtadores/key system,
-abra um ticket em " + TICKET_CHANNEL
+        return "Para bypass de encurtadores/key system,\nabra um ticket em " + TICKET_CHANNEL
     elif category == "help":
-        return "Caso esteja precisando de ajuda,
-abra um ticket em " + TICKET_CHANNEL
+        return "Caso esteja precisando de ajuda,\nabra um ticket em " + TICKET_CHANNEL
     return ""
 
 
@@ -281,11 +266,11 @@ def create_embed(category: str, user: discord.Member) -> discord.Embed:
         timestamp=datetime.utcnow()
     )
     embed.set_author(
-        name="Suporte Automático — " + user.display_name,
+        name="Suporte Automatico - " + user.display_name,
         icon_url=user.display_avatar.url
     )
     embed.set_footer(
-        text=data["footer"] + " | Esta mensagem será apagada em " + str(DELETE_DELAY) + "s",
+        text=data["footer"] + " | Esta mensagem sera apagada em " + str(DELETE_DELAY) + "s",
         icon_url=bot.user.display_avatar.url if bot.user else None
     )
     return embed
@@ -326,7 +311,7 @@ def analyze_message(content: str) -> tuple | None:
     return (best_category, best_score)
 
 
-# ============ FUNÇÕES ANTI-APOSTA ============
+# ============ FUNCOES ANTI-APOSTA ============
 
 def check_gambling_text(text: str) -> list:
     if not text:
@@ -347,7 +332,7 @@ async def send_gambling_log(guild: discord.Guild, message: discord.Message, matc
     if not log_channel:
         return
     embed = discord.Embed(
-        title="🚫 Imagem de Aposta Detectada",
+        title="Imagem de Aposta Detectada",
         description="Mensagem de " + message.author.mention + " foi apagada automaticamente.",
         color=COLOR_ANTIGAMBLE,
         timestamp=datetime.utcnow()
@@ -357,23 +342,23 @@ async def send_gambling_log(guild: discord.Guild, message: discord.Message, matc
         icon_url=message.author.display_avatar.url
     )
     embed.add_field(
-        name="👤 Usuário",
+        name="Usuario",
         value=message.author.mention + " (`" + str(message.author.id) + "`)",
         inline=False
     )
     embed.add_field(
-        name="📋 Palavras detectadas",
+        name="Palavras detectadas",
         value=", ".join("`" + k + "`" for k in matched_keywords[:10]),
         inline=False
     )
     embed.add_field(
-        name="💬 Conteúdo original",
-        value=message.content[:1000] if message.content else "*(sem texto)*",
+        name="Conteudo original",
+        value=message.content[:1000] if message.content else "(sem texto)",
         inline=False
     )
-    embed.add_field(name="📍 Canal", value=message.channel.mention, inline=True)
+    embed.add_field(name="Canal", value=message.channel.mention, inline=True)
     embed.add_field(
-        name="🕐 Horário",
+        name="Horario",
         value="<t:" + str(int(message.created_at.timestamp())) + ":F>",
         inline=True
     )
@@ -387,16 +372,16 @@ async def send_gambling_log(guild: discord.Guild, message: discord.Message, matc
 
 @bot.event
 async def on_ready():
-    print("✅ Bot online como " + str(bot.user))
-    print("🌐 Conectado em " + str(len(bot.guilds)) + " servidor(es)")
-    print("📊 " + str(len(KEYWORDS)) + " categorias de suporte carregadas")
-    print("🎰 Anti-aposta: " + ("ATIVO" if gambling_config["active"] else "INATIVO"))
-    print("⏱️ Cooldown por usuário: " + str(COOLDOWN_SECONDS) + "s")
+    print("Bot online como " + str(bot.user))
+    print("Conectado em " + str(len(bot.guilds)) + " servidor(es)")
+    print(str(len(KEYWORDS)) + " categorias de suporte carregadas")
+    print("Anti-aposta: " + ("ATIVO" if gambling_config["active"] else "INATIVO"))
+    print("Cooldown por usuario: " + str(COOLDOWN_SECONDS) + "s")
     try:
         synced = await bot.tree.sync()
-        print("🔄 " + str(len(synced)) + " slash commands sincronizados")
+        print(str(len(synced)) + " slash commands sincronizados")
     except Exception as e:
-        print("⚠️ Erro ao sincronizar slash commands: " + str(e))
+        print("Erro ao sincronizar slash commands: " + str(e))
     activity = discord.Activity(
         type=discord.ActivityType.watching,
         name="por mensagens | /ajuda"
@@ -466,20 +451,20 @@ async def on_message(message: discord.Message):
 
 # ============ SLASH COMMANDS ============
 
-@bot.tree.command(name="ajuda", description="Mostra a central de suporte automático")
+@bot.tree.command(name="ajuda", description="Mostra a central de suporte automatico")
 async def slash_ajuda(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="🤖 Central de Suporte Automático",
-        description="Eu detecto automaticamente o que você precisa! Aqui estão as categorias:",
+        title="Central de Suporte Automatico",
+        description="Eu detecto automaticamente o que voce precisa! Aqui estao as categorias:",
         color=COLOR_DEFAULT,
         timestamp=datetime.utcnow()
     )
     categories_info = [
-        ("📜 Scripts", "script", "Palavras como: script, cheat, hack, mod menu, auto farm..."),
-        ("⚙️ Executores", "executor", "Palavras como: executor, inject, exploit, level 7, bypass..."),
-        ("🐛 Bugs & Erros", "bug", "Palavras como: bug, crash, erro, não funciona, travou..."),
-        ("🔑 Key & Bypass", "key", "Palavras como: key, bypass, encurtador, linkvertise..."),
-        ("🆘 Ajuda Geral", "help", "Palavras como: ajuda, socorro, help, não sei, tutorial..."),
+        ("Scripts", "script", "Palavras como: script, cheat, hack, mod menu, auto farm..."),
+        ("Executores", "executor", "Palavras como: executor, inject, exploit, level 7, bypass..."),
+        ("Bugs & Erros", "bug", "Palavras como: bug, crash, erro, nao funciona, travou..."),
+        ("Key & Bypass", "key", "Palavras como: key, bypass, encurtador, linkvertise..."),
+        ("Ajuda Geral", "help", "Palavras como: ajuda, socorro, help, nao sei, tutorial..."),
     ]
     for emoji_title, key, desc in categories_info:
         embed.add_field(name=emoji_title, value=desc, inline=False)
@@ -490,18 +475,18 @@ async def slash_ajuda(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-@bot.tree.command(name="ping", description="Mostra a latência do bot")
+@bot.tree.command(name="ping", description="Mostra a latencia do bot")
 async def slash_ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
     embed = discord.Embed(
-        title="🏓 Pong!",
-        description="Latência: `" + str(latency) + "ms`",
+        title="Pong!",
+        description="Latencia: `" + str(latency) + "ms`",
         color=COLOR_DEFAULT
     )
     await interaction.response.send_message(embed=embed)
 
 
-@bot.tree.command(name="testar", description="Testa a detecção de uma mensagem")
+@bot.tree.command(name="testar", description="Testa a deteccao de uma mensagem")
 @app_commands.describe(texto="Texto para analisar")
 @app_commands.checks.has_permissions(manage_messages=True)
 async def slash_testar(interaction: discord.Interaction, texto: str):
@@ -510,26 +495,26 @@ async def slash_testar(interaction: discord.Interaction, texto: str):
         category, score = result
         embed = create_embed(category, interaction.user)
         embed.add_field(
-            name="🧪 Modo Teste",
+            name="Modo Teste",
             value="Texto analisado: `" + texto[:100] + "`...",
             inline=False
         )
-        embed.add_field(name="🎯 Pontuação", value=str(score) + " pontos", inline=True)
+        embed.add_field(name="Pontuacao", value=str(score) + " pontos", inline=True)
         await interaction.response.send_message(embed=embed)
     else:
-        await interaction.response.send_message("🤷 Nenhuma categoria detectada para esse texto.")
+        await interaction.response.send_message("Nenhuma categoria detectada para esse texto.")
 
 
-@bot.tree.command(name="stats", description="Mostra estatísticas do bot")
+@bot.tree.command(name="stats", description="Mostra estatisticas do bot")
 async def slash_stats(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="📊 Estatísticas do Bot",
+        title="Estatisticas do Bot",
         color=COLOR_DEFAULT,
         timestamp=datetime.utcnow()
     )
     embed.add_field(name="Servidores", value=str(len(bot.guilds)), inline=True)
     embed.add_field(name="Categorias", value=str(len(KEYWORDS)), inline=True)
-    embed.add_field(name="Latência", value=str(round(bot.latency * 1000)) + "ms", inline=True)
+    embed.add_field(name="Latencia", value=str(round(bot.latency * 1000)) + "ms", inline=True)
     total_keywords = sum(len(v["words"]) for v in KEYWORDS.values())
     embed.add_field(name="Palavras-chave", value=str(total_keywords), inline=True)
     embed.add_field(name="Cooldown", value=str(COOLDOWN_SECONDS) + "s", inline=True)
@@ -539,15 +524,15 @@ async def slash_stats(interaction: discord.Interaction):
 
 # ============ SLASH COMMANDS ANTI-APOSTA ============
 
-@bot.tree.command(name="channel", description="Define o canal de log para detecção de apostas")
-@app_commands.describe(canal="Canal onde os logs serão enviados")
+@bot.tree.command(name="channel", description="Define o canal de log para deteccao de apostas")
+@app_commands.describe(canal="Canal onde os logs serao enviados")
 async def slash_channel(interaction: discord.Interaction, canal: discord.TextChannel):
     if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message("❌ Apenas o dono pode usar este comando.", ephemeral=True)
+        return await interaction.response.send_message("Apenas o dono pode usar este comando.", ephemeral=True)
     gambling_config["log_channel_id"] = canal.id
     embed = discord.Embed(
-        title="✅ Canal de Log Configurado",
-        description="Logs de detecção de apostas serão enviados em " + canal.mention,
+        title="Canal de Log Configurado",
+        description="Logs de deteccao de apostas serao enviados em " + canal.mention,
         color=COLOR_EXECUTOR
     )
     await interaction.response.send_message(embed=embed)
@@ -561,7 +546,7 @@ async def slash_channel(interaction: discord.Interaction, canal: discord.TextCha
 ])
 async def slash_active(interaction: discord.Interaction, estado: app_commands.Choice[str]):
     if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message("❌ Apenas o dono pode usar este comando.", ephemeral=True)
+        return await interaction.response.send_message("Apenas o dono pode usar este comando.", ephemeral=True)
     if estado.value == "true":
         gambling_config["active"] = True
         status = "ATIVADO"
@@ -571,17 +556,17 @@ async def slash_active(interaction: discord.Interaction, estado: app_commands.Ch
         status = "DESATIVADO"
         color = COLOR_BUG
     embed = discord.Embed(
-        title="🎰 Sistema Anti-Aposta " + status,
-        description="O sistema de detecção de imagens de apostas está agora **" + status + "**.",
+        title="Sistema Anti-Aposta " + status,
+        description="O sistema de deteccao de imagens de apostas esta agora **" + status + "**.",
         color=color
     )
     await interaction.response.send_message(embed=embed)
 
 
-# ============ INICIALIZAÇÃO ============
+# ============ INICIALIZACAO ============
 if __name__ == "__main__":
     if not TOKEN:
-        print("❌ ERRO: Variável DISCORD_TOKEN não definida!")
-        print("   Configure em: Railway → Variables → DISCORD_TOKEN")
+        print("ERRO: Variavel DISCORD_TOKEN nao definida!")
+        print("Configure em: Railway - Variables - DISCORD_TOKEN")
         exit(1)
     bot.run(TOKEN)
