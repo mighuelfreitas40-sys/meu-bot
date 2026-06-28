@@ -4,6 +4,7 @@ import asyncio
 import re
 import time
 from discord.ext import commands
+from discord import app_commands
 from datetime import datetime
 
 # ============ CONFIGURAÇÕES ============
@@ -30,6 +31,36 @@ COLOR_BUG = 0xe74c3c
 COLOR_KEY = 0x9b59b6
 COLOR_HELP = 0xf39c12
 COLOR_DEFAULT = 0x95a5a6
+COLOR_ANTIGAMBLE = 0xff0000
+
+# ============ SISTEMA ANTI-APOSTA ============
+OWNER_ID = 1252758938693144696
+
+# Palavras-chave de apostas (detecção em texto e OCR)
+GAMBLING_KEYWORDS = [
+    "crypto", "cassino", "casino", "bonus", "bônus", "usdt", "bet",
+    "betano", "bank card", "withdrawal", "withdraw", "promo", "promocode",
+    "promo code", "promotion", "promoção", "gambling", "gamble",
+    "aposta", "apostas", "betting", "wager", "wagering", "stake",
+    "stake.com", "1xbet", "pixbet", "blaze", "double", "roleta",
+    "roleta online", "crash game", "plinko", "aviator", "mines",
+    "slots", "slot", "jackpot", "free spin", "free spins",
+    "deposit bonus", "welcome bonus", "sign up bonus", "no deposit",
+    "cashback", "rakeback", "vip club", "vip-club", "vip bonus",
+    "crypto casino", "bitcoin casino", "btc casino", "eth casino",
+    "tether", "binance", "binance pay", "crypto withdrawal",
+    "withdraw success", "withdrawal success", "saque", "saque realizado",
+    "ganhei", "ganhei na", "ganhei na blaze", "ganhei na bet",
+    "luzewin", "luzewin.com", "vyro", "cryptocurrency casino",
+    "$5600", "$5000", "$10000", "5600 usdt", "5000 usdt",
+    "receive usdt", "usdt received", "+5600", "+5000",
+]
+
+# Estado do sistema anti-aposta
+gambling_config = {
+    "log_channel_id": None,
+    "active": True,
+}
 
 # ============ SISTEMA DE DETECÇÃO INTELIGENTE ============
 KEYWORDS = {
@@ -56,8 +87,11 @@ KEYWORDS = {
         "weight": 1,
         "title": "📜 Scripts & Cheats",
         "description": (
-            f"Se está à procura de scripts, verifique:\n"
-            f"{SCRIPT_CHANNELS}\n\n"
+            f"Se está à procura de scripts, verifique:
+"
+            f"{SCRIPT_CHANNELS}
+
+"
             f"Caso não encontre, diga o nome do jogo em {SCRIPT_FALLBACK}"
         ),
         "color": COLOR_SCRIPT,
@@ -87,9 +121,12 @@ KEYWORDS = {
         "weight": 1,
         "title": "⚙️ Executores",
         "description": (
-            f"Canais de executores por plataforma:\n"
-            f"📱 **Android:** {EXECUTOR_ANDROID}\n"
-            f"💻 **PC:** {EXECUTOR_PC}\n"
+            f"Canais de executores por plataforma:
+"
+            f"📱 **Android:** {EXECUTOR_ANDROID}
+"
+            f"💻 **PC:** {EXECUTOR_PC}
+"
             f"🍎 **iOS:** {EXECUTOR_IOS}"
         ),
         "color": COLOR_EXECUTOR,
@@ -126,8 +163,10 @@ KEYWORDS = {
         "weight": 1,
         "title": "🐛 Reportar Bug",
         "description": (
-            f"Canais para reportar problemas:\n"
-            f"📋 Soluções: {BUG_CHANNEL}\n"
+            f"Canais para reportar problemas:
+"
+            f"📋 Soluções: {BUG_CHANNEL}
+"
             f"🎫 Ticket: {TICKET_CHANNEL}"
         ),
         "color": COLOR_BUG,
@@ -157,7 +196,8 @@ KEYWORDS = {
         "weight": 1,
         "title": "🔑 Key System & Bypass",
         "description": (
-            f"Para bypass de encurtadores/key system,\n"
+            f"Para bypass de encurtadores/key system,
+"
             f"abra um ticket em {TICKET_CHANNEL}"
         ),
         "color": COLOR_KEY,
@@ -194,7 +234,8 @@ KEYWORDS = {
         "weight": 1,
         "title": "🆘 Central de Ajuda",
         "description": (
-            f"Caso esteja precisando de ajuda,\n"
+            f"Caso esteja precisando de ajuda,
+"
             f"abra um ticket em {TICKET_CHANNEL}"
         ),
         "color": COLOR_HELP,
@@ -226,7 +267,6 @@ bot = commands.Bot(
 
 
 def is_on_cooldown(user_id: int) -> bool:
-    """Verifica se o usuário está em cooldown."""
     if user_id not in user_cooldowns:
         return False
     elapsed = time.time() - user_cooldowns[user_id]
@@ -234,94 +274,137 @@ def is_on_cooldown(user_id: int) -> bool:
 
 
 def set_cooldown(user_id: int):
-    """Define o timestamp do último acionamento do usuário."""
     user_cooldowns[user_id] = time.time()
 
 
 def create_embed(category: str, user: discord.Member) -> discord.Embed:
     data = KEYWORDS[category]
-
     embed = discord.Embed(
         title=data["title"],
         description=data["description"],
         color=data["color"],
         timestamp=datetime.utcnow()
     )
-
     embed.set_author(
         name=f"Suporte Automático — {user.display_name}",
         icon_url=user.display_avatar.url
     )
-
     embed.set_footer(
         text=f"{data['footer']} | Esta mensagem será apagada em {DELETE_DELAY}s",
         icon_url=bot.user.display_avatar.url if bot.user else None
     )
-
     return embed
 
 
 def analyze_message(content: str) -> tuple | None:
     content_lower = content.lower()
-
     for neg in NEGATIVE_CONTEXT:
         if neg in content_lower:
             return None
-
     scores = {}
-
     for category, data in KEYWORDS.items():
         score = 0
         matched_words = []
-
         for word in data["words"]:
             pattern = r'\b' + re.escape(word.lower()) + r'\b'
             matches = len(re.findall(pattern, content_lower))
-
             if matches == 0:
                 if word.lower() in content_lower:
                     matches = 1
-
             if matches > 0:
                 score += matches * data["weight"]
                 matched_words.append(word)
-
         if len(matched_words) >= 3:
             score += 2
         if len(matched_words) >= 5:
             score += 3
-
         if len(matched_words) >= 2:
             score += 1
-
         if score > 0:
-            scores[category] = {
-                "score": score,
-                "words": matched_words
-            }
-
+            scores[category] = {"score": score, "words": matched_words}
     if not scores:
         return None
-
     best_category = max(scores, key=lambda x: scores[x]["score"])
     best_score = scores[best_category]["score"]
-
     if best_score < 2:
         return None
-
     return (best_category, best_score)
 
+
+# ============ FUNÇÕES ANTI-APOSTA ============
+
+def check_gambling_text(text: str) -> list:
+    if not text:
+        return []
+    text_lower = text.lower()
+    matches = []
+    for keyword in GAMBLING_KEYWORDS:
+        if keyword.lower() in text_lower:
+            matches.append(keyword)
+    return matches
+
+
+async def send_gambling_log(guild: discord.Guild, message: discord.Message, matched_keywords: list, image_url: str = None):
+    log_channel_id = gambling_config.get("log_channel_id")
+    if not log_channel_id:
+        return
+    log_channel = guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+    embed = discord.Embed(
+        title="🚫 Imagem de Aposta Detectada",
+        description=f"Mensagem de {message.author.mention} foi apagada automaticamente.",
+        color=COLOR_ANTIGAMBLE,
+        timestamp=datetime.utcnow()
+    )
+    embed.set_author(
+        name=message.author.display_name,
+        icon_url=message.author.display_avatar.url
+    )
+    embed.add_field(
+        name="👤 Usuário",
+        value=f"{message.author.mention} (`{message.author.id}`)",
+        inline=False
+    )
+    embed.add_field(
+        name="📋 Palavras detectadas",
+        value=", ".join(f"`{k}`" for k in matched_keywords[:10]),
+        inline=False
+    )
+    embed.add_field(
+        name="💬 Conteúdo original",
+        value=message.content[:1000] if message.content else "*(sem texto)*",
+        inline=False
+    )
+    embed.add_field(name="📍 Canal", value=message.channel.mention, inline=True)
+    embed.add_field(
+        name="🕐 Horário",
+        value=f"<t:{int(message.created_at.timestamp())}:F>",
+        inline=True
+    )
+    if image_url:
+        embed.set_image(url=image_url)
+    embed.set_footer(text=f"ID da mensagem: {message.id}")
+    await log_channel.send(embed=embed)
+
+
+# ============ EVENTOS ============
 
 @bot.event
 async def on_ready():
     print(f"✅ Bot online como {bot.user}")
     print(f"🌐 Conectado em {len(bot.guilds)} servidor(es)")
     print(f"📊 {len(KEYWORDS)} categorias de suporte carregadas")
+    print(f"🎰 Anti-aposta: {'ATIVO' if gambling_config['active'] else 'INATIVO'}")
     print(f"⏱️ Cooldown por usuário: {COOLDOWN_SECONDS}s")
-
+    try:
+        synced = await bot.tree.sync()
+        print(f"🔄 {len(synced)} slash commands sincronizados")
+    except Exception as e:
+        print(f"⚠️ Erro ao sincronizar slash commands: {e}")
     activity = discord.Activity(
         type=discord.ActivityType.watching,
-        name="por mensagens | !ajuda"
+        name="por mensagens | /ajuda"
     )
     await bot.change_presence(activity=activity)
 
@@ -330,48 +413,72 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
-
     if message.guild is None:
         return
-
     if message.author.bot:
         return
 
-    # === COOLDOWN POR USUÁRIO ===
+    # === ANTI-APOSTA ===
+    if gambling_config.get("active", True):
+        for attachment in message.attachments:
+            if attachment.content_type and attachment.content_type.startswith("image/"):
+                filename_matches = check_gambling_text(attachment.filename)
+                text_matches = check_gambling_text(message.content)
+                all_matches = list(set(filename_matches + text_matches))
+                if all_matches:
+                    try:
+                        await message.delete()
+                    except (discord.Forbidden, discord.NotFound):
+                        pass
+                    await send_gambling_log(
+                        message.guild, message, all_matches, attachment.url
+                    )
+                    return
+
+        for embed in message.embeds:
+            if embed.image and embed.image.url:
+                text_matches = check_gambling_text(message.content)
+                url_matches = check_gambling_text(embed.image.url)
+                title_matches = check_gambling_text(embed.title or "")
+                desc_matches = check_gambling_text(embed.description or "")
+                all_matches = list(set(text_matches + url_matches + title_matches + desc_matches))
+                if all_matches:
+                    try:
+                        await message.delete()
+                    except (discord.Forbidden, discord.NotFound):
+                        pass
+                    await send_gambling_log(
+                        message.guild, message, all_matches, embed.image.url
+                    )
+                    return
+
+    # === COOLDOWN ===
     if is_on_cooldown(message.author.id):
         return
-
     result = analyze_message(message.content)
-
     if result:
         category, score = result
-
         set_cooldown(message.author.id)
-
         embed = create_embed(category, message.author)
-
         sent = await message.channel.send(embed=embed)
-
         await asyncio.sleep(DELETE_DELAY)
         try:
             await sent.delete()
         except discord.NotFound:
             pass
-
     await bot.process_commands(message)
 
 
-# ============ COMANDOS ============
+# ============ SLASH COMMANDS ============
 
-@bot.command(name="ajuda", aliases=["help", "comandos", "cmds"])
-async def cmd_ajuda(ctx: commands.Context):
+@bot.tree.command(name="ajuda", description="Mostra a central de suporte automático")
+async def slash_ajuda(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🤖 Central de Suporte Automático",
         description="Eu detecto automaticamente o que você precisa! Aqui estão as categorias:",
         color=COLOR_DEFAULT,
         timestamp=datetime.utcnow()
     )
-
     categories_info = [
         ("📜 Scripts", "script", "Palavras como: script, cheat, hack, mod menu, auto farm..."),
         ("⚙️ Executores", "executor", "Palavras como: executor, inject, exploit, level 7, bypass..."),
@@ -379,79 +486,101 @@ async def cmd_ajuda(ctx: commands.Context):
         ("🔑 Key & Bypass", "key", "Palavras como: key, bypass, encurtador, linkvertise..."),
         ("🆘 Ajuda Geral", "help", "Palavras como: ajuda, socorro, help, não sei, tutorial..."),
     ]
-
     for emoji_title, key, desc in categories_info:
-        embed.add_field(
-            name=emoji_title,
-            value=desc,
-            inline=False
-        )
-
+        embed.add_field(name=emoji_title, value=desc, inline=False)
     embed.set_footer(
         text=f"Basta enviar sua mensagem no chat que eu identifico automaticamente! | Cooldown: {COOLDOWN_SECONDS}s",
         icon_url=bot.user.display_avatar.url
     )
+    await interaction.response.send_message(embed=embed)
 
-    await ctx.send(embed=embed)
 
-
-@bot.command(name="ping")
-async def cmd_ping(ctx: commands.Context):
+@bot.tree.command(name="ping", description="Mostra a latência do bot")
+async def slash_ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
-
     embed = discord.Embed(
         title="🏓 Pong!",
         description=f"Latência: `{latency}ms`",
         color=COLOR_DEFAULT
     )
+    await interaction.response.send_message(embed=embed)
 
-    await ctx.send(embed=embed)
 
-
-@bot.command(name="testar", aliases=["test", "detectar"])
-async def cmd_testar(ctx: commands.Context, *, texto: str):
-    if not ctx.author.guild_permissions.manage_messages:
-        return await ctx.send("❌ Você não tem permissão para usar este comando.")
-
+@bot.tree.command(name="testar", description="Testa a detecção de uma mensagem")
+@app_commands.describe(texto="Texto para analisar")
+@app_commands.checks.has_permissions(manage_messages=True)
+async def slash_testar(interaction: discord.Interaction, texto: str):
     result = analyze_message(texto)
-
     if result:
         category, score = result
-        embed = create_embed(category, ctx.author)
+        embed = create_embed(category, interaction.user)
         embed.add_field(
             name="🧪 Modo Teste",
             value=f"Texto analisado: `{texto[:100]}`...",
             inline=False
         )
-        embed.add_field(
-            name="🎯 Pontuação",
-            value=f"{score} pontos",
-            inline=True
-        )
-        await ctx.send(embed=embed)
+        embed.add_field(name="🎯 Pontuação", value=f"{score} pontos", inline=True)
+        await interaction.response.send_message(embed=embed)
     else:
-        await ctx.send("🤷 Nenhuma categoria detectada para esse texto.")
+        await interaction.response.send_message("🤷 Nenhuma categoria detectada para esse texto.")
 
 
-@bot.command(name="stats")
-async def cmd_stats(ctx: commands.Context):
+@bot.tree.command(name="stats", description="Mostra estatísticas do bot")
+async def slash_stats(interaction: discord.Interaction):
     embed = discord.Embed(
         title="📊 Estatísticas do Bot",
         color=COLOR_DEFAULT,
         timestamp=datetime.utcnow()
     )
-
     embed.add_field(name="Servidores", value=str(len(bot.guilds)), inline=True)
     embed.add_field(name="Categorias", value=str(len(KEYWORDS)), inline=True)
     embed.add_field(name="Latência", value=f"{round(bot.latency * 1000)}ms", inline=True)
-
     total_keywords = sum(len(v["words"]) for v in KEYWORDS.values())
     embed.add_field(name="Palavras-chave", value=str(total_keywords), inline=True)
     embed.add_field(name="Cooldown", value=f"{COOLDOWN_SECONDS}s", inline=True)
-
     embed.set_footer(text=f"Bot: {bot.user}")
+    await interaction.response.send_message(embed=embed)
 
-    await ctx.send(embed=embed)
+
+# ============ SLASH COMMANDS ANTI-APOSTA ============
+
+@bot.tree.command(name="channel", description="Define o canal de log para detecção de apostas")
+@app_commands.describe(canal="Canal onde os logs serão enviados")
+async def slash_channel(interaction: discord.Interaction, canal: discord.TextChannel):
+    if interaction.user.id != OWNER_ID:
+        return await interaction.response.send_message("❌ Apenas o dono pode usar este comando.", ephemeral=True)
+    gambling_config["log_channel_id"] = canal.id
+    embed = discord.Embed(
+        title="✅ Canal de Log Configurado",
+        description=f"Logs de detecção de apostas serão enviados em {canal.mention}",
+        color=COLOR_EXECUTOR
+    )
+    await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="active", description="Ativa ou desativa o sistema anti-aposta")
+@app_commands.describe(estado="true para ativar, false para desativar")
+@app_commands.choices(estado=[
+    app_commands.Choice(name="Ativar", value="true"),
+    app_commands.Choice(name="Desativar", value="false"),
+])
+async def slash_active(interaction: discord.Interaction, estado: app_commands.Choice[str]):
+    if interaction.user.id != OWNER_ID:
+        return await interaction.response.send_message("❌ Apenas o dono pode usar este comando.", ephemeral=True)
+    if estado.value == "true":
+        gambling_config["active"] = True
+        status = "ATIVADO"
+        color = COLOR_EXECUTOR
+    else:
+        gambling_config["active"] = False
+        status = "DESATIVADO"
+        color = COLOR_BUG
+    embed = discord.Embed(
+        title=f"🎰 Sistema Anti-Aposta {status}",
+        description=f"O sistema de detecção de imagens de apostas está agora **{status}**.",
+        color=color
+    )
+    await interaction.response.send_message(embed=embed)
 
 
 # ============ INICIALIZAÇÃO ============
@@ -460,5 +589,4 @@ if __name__ == "__main__":
         print("❌ ERRO: Variável DISCORD_TOKEN não definida!")
         print("   Configure em: Railway → Variables → DISCORD_TOKEN")
         exit(1)
-
     bot.run(TOKEN)
